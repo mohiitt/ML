@@ -1,0 +1,432 @@
+DAA 
+
+											LA1
+#include <iostream>
+#include <chrono>
+using namespace std;
+using namespace std::chrono;
+
+void RecFibonacciSeries(int n, int a = 0, int b = 1) {
+    if (n > 0) {
+        cout << a << " ";
+        RecFibonacciSeries(n - 1, b, a + b);
+    }
+}
+
+void fibonacciIterative(int n) {
+    if (n <= 0)
+        return; // Handle case for non-positive numbers
+
+    int a = 0, b = 1;  // First two Fibonacci numbers
+    cout << a << " ";  // Print the first number
+
+    if (n == 1) return; // If only one number is needed
+
+    cout << b << " ";  // Print the second number
+
+    for (int i = 2; i < n; ++i) {
+        int result = a + b; // Calculate the next Fibonacci number
+        cout << result << " "; // Print the result
+        a = b; // Update for next iteration
+        b = result; // Update for next iteration
+    }
+    cout << endl;
+}
+
+int main() {
+    int n;
+    cout << "Enter the number of elements: ";
+    cin >> n;
+
+    cout << "Fibonacci Series by recursive : ";
+
+    auto start_time = high_resolution_clock::now();
+
+    RecFibonacciSeries(n); // n-2 because 2 numbers are already printed
+
+    auto end_time = high_resolution_clock::now();
+
+    auto duration = duration_cast<microseconds>(end_time - start_time);
+    cout << "\nElapsed Time: " << duration.count() << " microseconds" << endl;
+    cout << "Estimated Space Used: " << sizeof(int) * 3 * (n - 2) << " bytes" << endl;
+
+    //-----------------------------------------------------------------------------------------
+
+    cout << "Fibonacci Series by non-recursive method : ";
+
+    start_time = high_resolution_clock::now();
+    fibonacciIterative(n);
+    end_time = high_resolution_clock::now();
+
+    duration = duration_cast<microseconds>(end_time - start_time);
+    cout << "\nElapsed Time: " << duration.count() << " microseconds" << endl;
+    cout << "Estimated Space Used: O(1) (constant space)" << endl;
+
+    return 0;
+}
+
+
+******************************************************************************************
+											LA-2
+#include <iostream>
+#include <map>
+#include <queue>
+#include <string>
+#include <vector>
+
+struct HuffNode {
+  char c;
+  int freq;
+  HuffNode *leftchild;
+  HuffNode *rightchild;
+  HuffNode() {
+    c = '\0';
+    freq = 0;
+    leftchild = NULL;
+    rightchild = NULL;
+  }
+
+  HuffNode(char c, int freq, HuffNode *leftchild, HuffNode *rightchild) {
+    this->c = c;
+    this->freq = freq;
+    this->leftchild = leftchild;
+    this->rightchild = rightchild;
+  }
+};
+
+/*
+ * generation of Huffman tree:
+ *  - first sort the Huffman Nodes based on their frequencies
+ *  - Then select two nodes with least frequencies and add their frequencies
+ *  - repeat the process till there's only single node
+ *  PriorityQueue is best DS for getting nodes with least frequencies
+ * */
+class Compare {
+public:
+  bool operator()(HuffNode *ele1, HuffNode *ele2) {
+    return ele1->freq > ele2->freq; // comparator to sort in ascending order
+  }
+};
+
+HuffNode *generateHuffTree(std::map<char, int> frequencyTable) {
+  std::priority_queue<HuffNode *, std::vector<HuffNode *>, Compare>
+      PriorityQueue;
+  // push all HuffNodes into PriorityQueue
+  for (auto it : frequencyTable) {
+    PriorityQueue.push(new HuffNode(it.first, it.second, NULL, NULL));
+  }
+
+  HuffNode *least1, *least2;
+  //  std::cout << "NO SEF";
+  while (PriorityQueue.size() > 1) {
+    // std::cout << PriorityQueue.top()->c << ":" << PriorityQueue.top()->freq;
+    least1 = PriorityQueue.top();
+    PriorityQueue.pop();
+    // std::cout << PriorityQueue.top()->c << ":" << PriorityQueue.top()->freq;
+    least2 = PriorityQueue.top();
+    PriorityQueue.pop();
+    PriorityQueue.push(
+        new HuffNode('\0', least1->freq + least2->freq, least1, least2));
+  }
+  HuffNode *root;
+  root = PriorityQueue.top();
+  // pop the first two
+  return root;
+}
+
+std::map<char, int> calcFrequencies(std::string &inputStr) {
+  std::map<char, int> frequencyTable;
+  for (char c : inputStr) {
+    if (frequencyTable.find(c) != frequencyTable.end())
+      frequencyTable[c] += 1;
+    else
+      frequencyTable[c] = 1;
+  }
+  return frequencyTable;
+}
+
+void printFreqTable(std::string &inputStr) {
+  std::map<char, int> freqT;
+  freqT = calcFrequencies(inputStr);
+  for (auto it : freqT) {
+    std::cout << it.first << ": " << it.second << std::endl;
+  }
+}
+
+void generateCharMap(HuffNode *HuffRoot, std::string currentEncoding,
+                     std::map<char, std::string> &charMap) {
+  if (!HuffRoot)
+    return;
+  // if it is a terminal node -> it is a character node
+  if (!HuffRoot->leftchild && !HuffRoot->rightchild) {
+    charMap[HuffRoot->c] = currentEncoding;
+    return;
+  }
+
+  generateCharMap(HuffRoot->leftchild, currentEncoding + "0", charMap);
+  generateCharMap(HuffRoot->rightchild, currentEncoding + "1", charMap);
+}
+
+std::string encode(std::string &inputStr) {
+  std::string encoded_str;
+  std::map<char, int> freqT = calcFrequencies(inputStr);
+  std::map<char, std::string> charEncodings;
+  std::string currentEncoding;
+  HuffNode *HuffRoot = generateHuffTree(freqT);
+  generateCharMap(HuffRoot, currentEncoding, charEncodings);
+  std::cout << "Char\tEncodings" << std::endl;
+  for (auto it : charEncodings) {
+    std::cout << it.first << "\t" << it.second << std::endl;
+  }
+  for (auto ch : inputStr) {
+    encoded_str.append(charEncodings[ch]);
+  }
+  return encoded_str;
+}
+
+int main(int argc, char *argv[]) {
+  int option;
+  while (option != 2) {
+    std::cout << "\n-----------------------------------------------------------"
+                 "-----------------";
+    std::cout << "\n-----------WELCOME TO HUFFMAN ENCODING LOSSLESS "
+                 "COMPRESSION------------"
+              << std::endl;
+    std::cout << "SELECT AN OPTION\n1.ENCODE A STRING\n2.EXIT" << std::endl;
+    std::cout << "OPTION: " << std::endl;
+    std::cin >> option;
+    switch (option) {
+    case 1: {
+      std::string inputStr;
+      std::cout << "Enter String to be encoded: ";
+      std::cin >> inputStr;
+      // printFreqTable(inputStr);
+      std::string result;
+      result = encode(inputStr);
+      std::cout << "\nENCODED STRING IS : " << result;
+      break;
+    }
+    case 2:
+      break;
+    default: {
+      std::cout << "INCORRECT OPTION RECHOOSE" << std::endl;
+      break;
+    }
+    }
+  }
+  return 0;
+}
+
+
+
+****************************************************************************************
+
+											LA-3
+
+#include <iostream>
+#include <algorithm>  // Include this for 'sort'
+#include <chrono>     // For measuring execution time
+#include <iomanip>    // For formatting output
+
+using namespace std;
+
+struct Item {
+    int value;
+    int weight;
+};
+
+class Solution {
+public:
+    static bool comp(Item a, Item b) { 
+        double r1 = static_cast<double>(a.value) / static_cast<double>(a.weight);  
+        double r2 = static_cast<double>(b.value) / static_cast<double>(b.weight);  
+        return r1 > r2;  // Sort in descending order of value-to-weight ratio
+    }
+
+    double fractionalKnapsack(int W, Item arr[], int n) { 
+        sort(arr, arr + n, comp);  // Sort items by value/weight ratio
+
+        int curWeight = 0;          // Current weight of knapsack
+        double finalValue = 0.0;    // Total value in the knapsack
+
+        for (int i = 0; i < n; i++) {
+            if (curWeight + arr[i].weight <= W) { 
+                // Take the full item
+                curWeight += arr[i].weight;
+                finalValue += arr[i].value;
+            } else { 
+                // Take only the fraction of the remaining item
+                int remain = W - curWeight;
+                finalValue += (arr[i].value / static_cast<double>(arr[i].weight)) * static_cast<double>(remain);
+                break;  // Knapsack is full, exit the loop
+            }
+        }
+        return finalValue; 
+    }
+};
+
+int main() {
+    int n; // Number of items
+    int weight; // Capacity of the knapsack
+
+    // User input for number of items and knapsack capacity
+    cout << "Enter the number of items: ";
+    cin >> n;
+
+    cout << "Enter the capacity of the knapsack: ";
+    cin >> weight;
+
+    Item arr[n]; // Create an array of items
+
+    // User input for values and weights
+    for (int i = 0; i < n; i++) {
+        cout << "Enter value and weight for item " << i + 1 << " (value weight): ";
+        cin >> arr[i].value >> arr[i].weight;
+    }
+
+    Solution obj; 
+    auto start_time = chrono::high_resolution_clock::now();  // Start timer
+    double ans = obj.fractionalKnapsack(weight, arr, n);  // Call fractional knapsack function
+    auto end_time = chrono::high_resolution_clock::now();  // End timer
+
+    auto duration = chrono::duration_cast<chrono::microseconds>(end_time - start_time); // Calculate elapsed time
+
+    // Output results
+    cout << "The maximum value is " << fixed << setprecision(2) << ans << endl; 
+    cout << "Elapsed Time: " << duration.count() << " microseconds" << endl;
+
+    return 0; 
+}
+*********************************************************************************************
+
+										LA-4
+
+
+#include <iostream>
+#include <algorithm>
+
+using namespace std;
+
+void knapsack(int W, int weight[], int value[], int n) {
+    // Create a 2D array to store the maximum value at each n and W
+    int dp[n + 1][W + 1];
+
+    // Build the dp array
+    for (int i = 0; i <= n; i++) {
+        for (int w = 0; w <= W; w++) {
+            if (i == 0 || w == 0) {
+                dp[i][w] = 0; // Base case
+            } else if (weight[i - 1] <= w) {
+                // Max of including or excluding the current item
+                dp[i][w] = max(value[i - 1] + dp[i - 1][w - weight[i - 1]], dp[i - 1][w]);
+            } else {
+                dp[i][w] = dp[i - 1][w]; // Exclude the current item
+            }
+        }
+    }
+
+    // The maximum value obtainable
+    int maxProfit = dp[n][W];
+    cout << "The maximum value obtainable: " << maxProfit << endl;
+
+    // To find which items are included
+    cout << "Items included in the knapsack:\n";
+    int w = W;
+    for (int i = n; i > 0 && maxProfit > 0; i--) {
+        // If the item is included
+        if (maxProfit != dp[i - 1][w]) {
+            cout << "Item " << i << " (Weight: " << weight[i - 1] << ", Value: " << value[i - 1] << ")\n";
+            // Since this weight is included, subtract it from the total weight and value
+            maxProfit -= value[i - 1];
+            w -= weight[i - 1];
+        }
+    }
+}
+
+int main() {
+    int n; // Number of items
+    int W; // Capacity of the knapsack
+
+    // User input for number of items and knapsack capacity
+    cout << "Enter the number of items: ";
+    cin >> n;
+
+    cout << "Enter the capacity of the knapsack: ";
+    cin >> W;
+
+    int weight[n]; // Create an array for weights
+    int value[n];  // Create an array for values
+
+    // User input for weights and values
+    for (int i = 0; i < n; i++) {
+        cout << "Enter weight and value for item " << i + 1 << " (weight value): ";
+        cin >> weight[i] >> value[i];
+    }
+
+    knapsack(W, weight, value, n); // Solve using dynamic programming
+
+    return 0;
+}
+*************************************************************************************************
+
+											LA-5
+
+
+#include <iostream>
+#include <vector>
+#include <set>
+
+using namespace std;  // This will allow you to use cout, endl, etc. without std::
+
+void printSolution(const vector<vector<char>>& board) {
+    for (const auto& row : board) {
+        for (const auto& cell : row) {
+            cout << cell << " ";
+        }
+        cout << endl;
+    }
+    cout << endl;
+}
+
+void solveNQueens(int row, int n, vector<vector<char>>& board,
+                  set<int>& cols, set<int>& diag1, set<int>& diag2) {
+    if (row == n) {
+        printSolution(board);
+        return;
+    }
+
+    for (int col = 0; col < n; col++) {
+        if (cols.find(col) == cols.end() && diag1.find(row - col) == diag1.end() &&
+            diag2.find(row + col) == diag2.end()) {
+            board[row][col] = 'Q';
+            cols.insert(col);
+            diag1.insert(row - col);
+            diag2.insert(row + col);
+
+            solveNQueens(row + 1, n, board, cols, diag1, diag2);
+
+            board[row][col] = '.';
+            cols.erase(col);
+            diag1.erase(row - col);
+            diag2.erase(row + col);
+        }
+    }
+}
+
+int main() {
+    int n;
+    cout << "Enter the value of N: ";
+    cin >> n;
+
+    vector<vector<char>> board(n, vector<char>(n, '.'));
+    set<int> cols;
+    set<int> diag1;
+    set<int> diag2;
+
+    cout << "Solutions to the " << n << "-Queens problem:\n";
+    solveNQueens(0, n, board, cols, diag1, diag2);
+
+    return 0;
+}
+
+******************************************************************************************
